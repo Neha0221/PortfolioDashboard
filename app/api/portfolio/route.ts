@@ -9,7 +9,8 @@ type HoldingConfig = {
   exchange: Exchange;
   purchasePrice: number;
   quantity: number;
-  symbol: string;
+  yahooSymbol: string;
+  googleSymbol: string;
 };
 
 type HoldingResponse = {
@@ -41,7 +42,8 @@ const HOLDINGS_CONFIG: HoldingConfig[] = [
     exchange: "NSE",
     purchasePrice: 1450,
     quantity: 10,
-    symbol: "HDFCBANK.NS",
+    yahooSymbol: "HDFCBANK.NS",
+    googleSymbol: "HDFCBANK:NSE",
   },
   {
     id: "infosys",
@@ -50,7 +52,8 @@ const HOLDINGS_CONFIG: HoldingConfig[] = [
     exchange: "NSE",
     purchasePrice: 1350,
     quantity: 8,
-    symbol: "INFY.NS",
+    yahooSymbol: "INFY.NS",
+    googleSymbol: "INFY:NSE",
   },
   {
     id: "tcs",
@@ -59,7 +62,8 @@ const HOLDINGS_CONFIG: HoldingConfig[] = [
     exchange: "NSE",
     purchasePrice: 3600,
     quantity: 5,
-    symbol: "TCS.NS",
+    yahooSymbol: "TCS.NS",
+    googleSymbol: "TCS:NSE",
   },
   {
     id: "icici-bank",
@@ -68,7 +72,8 @@ const HOLDINGS_CONFIG: HoldingConfig[] = [
     exchange: "NSE",
     purchasePrice: 980,
     quantity: 12,
-    symbol: "ICICIBANK.NS",
+    yahooSymbol: "ICICIBANK.NS",
+    googleSymbol: "ICICIBANK:NSE",
   },
 ];
 
@@ -76,10 +81,9 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchYahooHolding(symbol: string): Promise<{
+// Yahoo Finance: used ONLY for CMP (Current Market Price)
+async function fetchYahooCmp(symbol: string): Promise<{
   cmp: number;
-  peRatio: number;
-  latestEarnings: string;
 }> {
   // yahoo-finance2 is an unofficial library that fetches Yahoo Finance data.
   // It usually works without API keys, but still needs caching to avoid blocks.
@@ -98,26 +102,80 @@ async function fetchYahooHolding(symbol: string): Promise<{
     throw new Error(`No CMP available for ${symbol}`);
   }
 
-  const pe =
-    summary?.summaryDetail?.trailingPE ??
-    summary?.defaultKeyStatistics?.trailingPE ??
-    summary?.summaryDetail?.trailingPE?.raw ??
-    summary?.defaultKeyStatistics?.trailingPE?.raw;
+  return { cmp: price };
+}
 
-  const peRatio = typeof pe === "number" ? pe : 0;
+// Google Finance: used for P/E Ratio and Latest Earnings
+// Uses Axios to fetch the quote page HTML and lightweight regexes to
+// extract values near specific labels. This avoids relying on dynamic
+// CSS class names and keeps the scraper reasonably robust.
+async function fetchGoogleFundamentals(
+  symbol: string
+): Promise<{
+  peRatio: number;
+  latestEarnings: string;
+}> {
+  const url = `https://www.google.com/finance/quote/${encodeURIComponent(
+    symbol
+  )}?hl=en`;
 
-  const earningsDate =
-    summary?.calendarEvents?.earnings?.earningsDate?.[0] ??
-    summary?.calendarEvents?.earnings?.earningsDate?.[0]?.raw;
+  // Lazy‑load axios so that this route stays tree‑shake‑friendly.
+  const axiosModule = await import("axios");
+  const axios = axiosModule.default;
 
-  const latestEarnings =
-    earningsDate instanceof Date
-      ? earningsDate.toISOString().slice(0, 10)
-      : typeof earningsDate === "number"
-      ? new Date(earningsDate * 1000).toISOString().slice(0, 10)
-      : "N/A";
+  const response = await axios.get(url, {
+    headers: {
+      // Use a browser-like user agent to reduce the chance of being blocked.
+      "User-Agent":
+        "Mozilla/5.0 (compatible; PortfolioDashboard/1.0; +https://example.com)",
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    },
+    // We handle our own caching at the API level.
+    validateStatus: (status: number) => status >= 200 && status < 400,
+  });
 
-  return { cmp: price, peRatio, latestEarnings };
+  const html = String(response.data);
+
+  // ---- P/E Ratio parsing ----
+  // Strategy:
+  // 1. Find the first occurrence of the "P/E ratio" label.
+  // 2. Take a small slice of HTML starting at that label (to avoid
+  //    accidentally matching numbers from other parts of the page,
+  //    like index values).
+  // 3. Within that slice, capture the first decimal number that appears
+  //    after the label.
+  let peRatio = 0;
+  const peLabelIndex = html.indexOf("P/E ratio");
+  if (peLabelIndex !== -1) {
+    const peWindow = html.slice(peLabelIndex, peLabelIndex + 350);
+
+    // Example structure in this window (simplified):
+    // "P/E ratio</div><div>...description...</div><div>19.17</div>"
+    const peMatch = peWindow.match(
+      /P\/E\s*ratio[\s\S]*?([0-9]+(?:\.[0-9]+)?)/i
+    );
+
+    if (peMatch && peMatch[1]) {
+      const parsed = Number(peMatch[1]);
+      if (!Number.isNaN(parsed)) {
+        peRatio = parsed;
+      }
+    }
+  }
+
+  // ---- Latest Earnings parsing ----
+  // Google Finance doesn't expose a clean "latest earnings" label.
+  // As a pragmatic interpretation, we approximate "latest earnings"
+  // as the most recent "Net income" value from the Income Statement table.
+  let latestEarnings = "N/A";
+  const niMatch = html.match(
+    /Net income[\s\S]*?Company’s earnings[\s\S]*?([0-9]+(?:\.[0-9]+)?(?:[KMBT])?)/i
+  );
+  if (niMatch && niMatch[1]) {
+    latestEarnings = niMatch[1];
+  }
+
+  return { peRatio, latestEarnings };
 }
 
 export async function GET() {
@@ -139,7 +197,11 @@ export async function GET() {
     const results: HoldingResponse[] = [];
     for (const holding of HOLDINGS_CONFIG) {
       try {
-        const live = await fetchYahooHolding(holding.symbol);
+        // Fetch CMP from Yahoo Finance and fundamentals from Google Finance in parallel
+        const [yahooCmp, googleFundamentals] = await Promise.all([
+          fetchYahooCmp(holding.yahooSymbol),
+          fetchGoogleFundamentals(holding.googleSymbol),
+        ]);
 
         results.push({
           id: holding.id,
@@ -148,9 +210,9 @@ export async function GET() {
           exchange: holding.exchange,
           purchasePrice: holding.purchasePrice,
           quantity: holding.quantity,
-          cmp: live.cmp,
-          peRatio: live.peRatio,
-          latestEarnings: live.latestEarnings,
+          cmp: yahooCmp.cmp,
+          peRatio: googleFundamentals.peRatio,
+          latestEarnings: googleFundamentals.latestEarnings,
         });
       } catch (err) {
         console.error(err);
@@ -192,7 +254,7 @@ export async function GET() {
       return NextResponse.json(
         {
           holdings: cachedHoldings,
-          source: "yahoo-cached-error",
+          source: "cached-error",
           fetchedAt: new Date(lastFetchAt).toISOString(),
           warning: "Provider error; served cached values.",
         },

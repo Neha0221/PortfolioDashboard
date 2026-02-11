@@ -175,20 +175,32 @@ export const PortfolioDashboard: React.FC = () => {
       };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <header className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <div className="min-h-screen text-slate-100">
+      <div className="mx-auto max-w-6xl px-4 py-10">
+        <header className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-              Portfolio Dashboard
+            <p className="inline-flex items-center rounded-full bg-slate-900/60 px-3 py-1 text-xs font-medium text-cyan-300 ring-1 ring-cyan-400/40 backdrop-blur">
+              Live portfolio · refreshed every 15s
+            </p>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-50">
+              Equity Portfolio Overview
             </h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Real-time view of your holdings, sector allocation, and performance.
+            <p className="mt-2 max-w-xl text-sm text-slate-300">
+              Track current market value, P/E ratios from Google Finance, and
+              real-time gains across sectors in a single view.
             </p>
           </div>
-          <div className="text-right text-xs text-slate-500">
-            <p>Data source: Server-side market data API</p>
-            <p>Auto-refresh: every 15 seconds</p>
+          <div className="flex flex-col items-start gap-2 text-xs text-slate-300 sm:items-end">
+            <div className="inline-flex items-center gap-2 rounded-full bg-slate-900/40 px-3 py-1 ring-1 ring-slate-700/70 backdrop-blur">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Market data active</span>
+            </div>
+            <div className="rounded-lg bg-slate-900/40 px-3 py-2 ring-1 ring-slate-700/70 backdrop-blur">
+              <p className="font-medium text-slate-200">Sources</p>
+              <p className="mt-1 text-[11px] text-slate-400">
+                CMP · Yahoo Finance&nbsp;&middot;&nbsp; P/E &amp; Earnings · Google Finance
+              </p>
+            </div>
           </div>
         </header>
 
@@ -208,35 +220,35 @@ export const PortfolioDashboard: React.FC = () => {
           aria-label="Portfolio summary"
           className="mb-8 grid gap-4 sm:grid-cols-3"
         >
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <div className="rounded-2xl bg-slate-900/70 p-5 ring-1 ring-slate-700/70 shadow-lg shadow-slate-900/40 backdrop-blur">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
               Total Investment
             </p>
-            <p className="mt-2 text-2xl font-semibold">
+            <p className="mt-3 text-2xl font-semibold text-slate-50">
               {formatCurrency(summary.totalInvestment)}
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <div className="rounded-2xl bg-slate-900/70 p-5 ring-1 ring-slate-700/70 shadow-lg shadow-slate-900/40 backdrop-blur">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
               Present Value
             </p>
-            <p className="mt-2 text-2xl font-semibold">
+            <p className="mt-3 text-2xl font-semibold text-slate-50">
               {formatCurrency(summary.totalPresentValue)}
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <div className="rounded-2xl bg-slate-900/70 p-5 ring-1 ring-slate-700/70 shadow-lg shadow-slate-900/40 backdrop-blur">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
               Total Gain / Loss
             </p>
             <p
-              className={`mt-2 text-2xl font-semibold ${
-                summary.totalGainLoss >= 0 ? "text-emerald-600" : "text-rose-600"
+              className={`mt-3 text-2xl font-semibold ${
+                summary.totalGainLoss >= 0 ? "text-emerald-400" : "text-rose-400"
               }`}
             >
               {formatCurrency(summary.totalGainLoss)}{" "}
-              <span className="ml-1 text-sm font-medium">
+              <span className="ml-1 text-sm font-medium text-slate-300">
                 ({formatPercent(summary.totalGainLossPercent)})
               </span>
             </p>
@@ -244,25 +256,25 @@ export const PortfolioDashboard: React.FC = () => {
         </section>
 
         <section aria-label="Sector allocation" className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
             Sector Allocation
           </h2>
           <div className="grid gap-3 sm:grid-cols-3">
             {sectors.map((sector) => (
               <div
                 key={sector.sector}
-                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="rounded-2xl bg-slate-900/70 p-4 ring-1 ring-slate-800 shadow-lg shadow-slate-900/40 backdrop-blur"
               >
-                <p className="text-sm font-medium text-slate-900">
+                <p className="text-sm font-semibold text-slate-50">
                   {sector.sector}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-[11px] text-slate-400">
                   Weight in portfolio
                 </p>
-                <p className="mt-1 text-lg font-semibold">
+                <p className="mt-2 text-lg font-semibold text-cyan-300">
                   {formatPercent(sector.weightInPortfolio)}
                 </p>
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-2 text-xs text-slate-400">
                   {formatCurrency(sector.totalInvestment)} →{" "}
                   {formatCurrency(sector.totalPresentValue)}
                 </p>
@@ -272,7 +284,7 @@ export const PortfolioDashboard: React.FC = () => {
         </section>
 
         <section aria-label="Holdings by sector" className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
             Holdings
           </h2>
 
@@ -280,14 +292,14 @@ export const PortfolioDashboard: React.FC = () => {
             {sectors.map((sector) => (
               <div
                 key={sector.sector}
-                className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                className="overflow-hidden rounded-2xl bg-slate-950/70 ring-1 ring-slate-800 shadow-xl shadow-slate-900/60 backdrop-blur"
               >
-                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-3">
+                <div className="flex items-center justify-between border-b border-slate-800/80 bg-slate-900/80 px-4 py-3">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="text-sm font-semibold text-slate-50">
                       {sector.sector}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-[11px] text-slate-400">
                       {sector.holdings.length} holdings ·{" "}
                       {formatCurrency(sector.totalInvestment)} invested ·{" "}
                       {formatCurrency(sector.totalPresentValue)} current value
@@ -297,22 +309,22 @@ export const PortfolioDashboard: React.FC = () => {
                     <p
                       className={
                         sector.totalGainLoss >= 0
-                          ? "font-semibold text-emerald-600"
-                          : "font-semibold text-rose-600"
+                          ? "font-semibold text-emerald-400"
+                          : "font-semibold text-rose-400"
                       }
                     >
                       {sector.totalGainLoss >= 0 ? "Gain" : "Loss"}:{" "}
                       {formatCurrency(sector.totalGainLoss)}
                     </p>
-                    <p className="mt-1 text-slate-500">
+                    <p className="mt-1 text-slate-400">
                       Weight: {formatPercent(sector.weightInPortfolio)}
                     </p>
                   </div>
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="min-w-full border-t border-slate-100 text-left text-sm">
-                    <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                  <table className="min-w-full border-t border-slate-800 text-left text-sm">
+                    <thead className="sticky top-0 bg-slate-900/95 text-[11px] uppercase tracking-wide text-slate-400">
                       <tr>
                         <th className="px-4 py-2 font-medium">Particulars</th>
                         <th className="px-4 py-2 font-medium">Exchange</th>
@@ -325,7 +337,7 @@ export const PortfolioDashboard: React.FC = () => {
                         <th className="px-4 py-2 font-medium text-right">
                           Investment
                         </th>
-                        <th className="px-4 py-2 font-medium text-right">
+                        <th className="hidden px-4 py-2 text-right font-medium md:table-cell">
                           Portfolio (%)
                         </th>
                         <th className="px-4 py-2 font-medium text-right">
@@ -337,15 +349,15 @@ export const PortfolioDashboard: React.FC = () => {
                         <th className="px-4 py-2 font-medium text-right">
                           Gain / Loss
                         </th>
-                        <th className="px-4 py-2 font-medium text-right">
+                        <th className="hidden px-4 py-2 text-right font-medium md:table-cell">
                           P/E Ratio
                         </th>
-                        <th className="px-4 py-2 font-medium text-right">
+                        <th className="hidden px-4 py-2 text-right font-medium lg:table-cell">
                           Latest Earnings
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-800/80">
                       {sector.holdings.map((h) => {
                         const investment = h.purchasePrice * h.quantity;
                         const presentValue = h.cmp * h.quantity;
@@ -357,42 +369,45 @@ export const PortfolioDashboard: React.FC = () => {
                             : 0;
 
                         return (
-                          <tr key={h.id} className="hover:bg-slate-50/80">
-                            <td className="px-4 py-2 text-sm font-medium text-slate-900">
+                          <tr
+                            key={h.id}
+                            className="bg-slate-900/40 hover:bg-slate-800/80"
+                          >
+                            <td className="px-4 py-2 text-sm font-medium text-slate-50">
                               {h.name}
                             </td>
-                            <td className="px-4 py-2 text-xs text-slate-500">
+                            <td className="px-4 py-2 text-xs text-slate-400">
                               {h.exchange}
                             </td>
-                            <td className="px-4 py-2 text-right text-sm tabular-nums text-slate-700">
+                            <td className="px-4 py-2 text-right text-sm tabular-nums text-slate-200">
                               {formatCurrency(h.purchasePrice)}
                             </td>
-                            <td className="px-4 py-2 text-right text-sm tabular-nums text-slate-700">
+                            <td className="px-4 py-2 text-right text-sm tabular-nums text-slate-200">
                               {h.quantity}
                             </td>
-                            <td className="px-4 py-2 text-right text-sm tabular-nums text-slate-700">
+                            <td className="px-4 py-2 text-right text-sm tabular-nums text-slate-200">
                               {formatCurrency(investment)}
                             </td>
-                            <td className="px-4 py-2 text-right text-sm tabular-nums text-slate-700">
+                            <td className="hidden px-4 py-2 text-right text-sm tabular-nums text-slate-200 md:table-cell">
                               {formatPercent(portfolioPercent)}
                             </td>
-                            <td className="px-4 py-2 text-right text-sm tabular-nums text-slate-700">
+                            <td className="px-4 py-2 text-right text-sm tabular-nums text-slate-200">
                               {formatCurrency(h.cmp)}
                             </td>
-                            <td className="px-4 py-2 text-right text-sm tabular-nums text-slate-700">
+                            <td className="px-4 py-2 text-right text-sm tabular-nums text-slate-200">
                               {formatCurrency(presentValue)}
                             </td>
                             <td
                               className={`px-4 py-2 text-right text-sm tabular-nums ${
-                                isGain ? "text-emerald-600" : "text-rose-600"
+                                isGain ? "text-emerald-400" : "text-rose-400"
                               }`}
                             >
                               {formatCurrency(gainLoss)}
                             </td>
-                            <td className="px-4 py-2 text-right text-sm tabular-nums text-slate-700">
+                            <td className="hidden px-4 py-2 text-right text-sm tabular-nums text-slate-200 md:table-cell">
                               {h.peRatio.toFixed(2)}
                             </td>
-                            <td className="px-4 py-2 text-right text-xs text-slate-600">
+                            <td className="hidden px-4 py-2 text-right text-xs text-slate-300 lg:table-cell">
                               {h.latestEarnings}
                             </td>
                           </tr>
