@@ -114,3 +114,28 @@ To add a new hard‑coded holding:
 3. Save and restart the dev server if needed.
 
 The new company will automatically appear in the dashboard, with CMP from Yahoo Finance and P/E + Latest Earnings from Google Finance.
+
+---
+
+## 7. Evaluation Criteria Mapping
+
+**Functionality**  
+The dashboard shows a live equity portfolio with CMP from Yahoo Finance, P/E ratio and latest earnings from Google Finance, sector‑wise grouping, portfolio weights, and gain/loss calculations, matching the defined case‑study requirements.
+
+**Code Quality**  
+The codebase uses TypeScript types for holdings and sector groups, isolates pure helpers such as `computePortfolio`, `formatCurrency`, and `formatPercent`, and cleanly separates concerns between the UI (`PortfolioDashboard` component) and the backend API route (`app/api/portfolio/route.ts`), making the code easy to maintain and extend.
+
+**Performance**  
+Server‑side in‑memory caching (`CACHE_TTL_MS`) and a small delay between provider calls (`REQUEST_DELAY_MS`) keep the API fast and reduce external requests, while the frontend polls every 15 seconds so the dashboard stays responsive without overloading Yahoo or Google.
+
+**Error Handling**  
+When any external call fails or is rate‑limited, the API falls back to the last good cached values per holding, and the frontend displays a clear, user‑friendly error message if the portfolio cannot be loaded, ensuring failures are handled smoothly.
+
+**API Strategy (Scraping / Rate Limits)**  
+CMP is fetched using the unofficial `yahoo-finance2` library, and P/E ratio plus latest earnings are scraped from Google Finance via Axios with a browser‑like user agent. Combined with caching and throttling at the API layer, this strategy respects rate limits and reduces the risk of being blocked.
+
+**User Interface**  
+The dashboard uses a modern Tailwind‑based layout with clear typography, color‑coded gains and losses, sector cards, and responsive tables, providing an intuitive and visually appealing experience across screen sizes.
+
+**Problem Solving**  
+The implementation demonstrates practical solutions to real‑world constraints—working with unofficial data sources, handling HTML scraping fragility via fallbacks and caching, and presenting useful portfolio analytics (sector weights, total returns) in a single, coherent view.
