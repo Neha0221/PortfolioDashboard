@@ -119,6 +119,10 @@ async function fetchGoogleFundamentals(
     symbol
   )}?hl=en`;
 
+  // console.log(`fetchGoogleFundamentals: ${url}`);
+  // console.log(`fetchGoogleFundamentals: ${symbol}`);
+  // console.log(`fetchGoogleFundamentals: ${url}`);
+  // console.log(`fetchGoogleFundamentals: ${symbol}`);  
   // Lazy‑load axios so that this route stays tree‑shake‑friendly.
   const axiosModule = await import("axios");
   const axios = axiosModule.default;
@@ -137,29 +141,22 @@ async function fetchGoogleFundamentals(
   const html = String(response.data);
 
   // ---- P/E Ratio parsing ----
-  // Strategy:
-  // 1. Find the first occurrence of the "P/E ratio" label.
-  // 2. Take a small slice of HTML starting at that label (to avoid
-  //    accidentally matching numbers from other parts of the page,
-  //    like index values).
-  // 3. Within that slice, capture the first decimal number that appears
-  //    after the label.
+  // Runtime HTML (from your terminal) shows a structure like:
+  //
+  //   P/E ratio</div><div class="EY8ABd-...">...</div>...</span>
+  //   <div class="P6K39c">20.79</div>
+  //
+  // So we specifically look for the first number that appears in a
+  // <div> with class "P6K39c" after the "P/E ratio" label.
   let peRatio = 0;
-  const peLabelIndex = html.indexOf("P/E ratio");
-  if (peLabelIndex !== -1) {
-    const peWindow = html.slice(peLabelIndex, peLabelIndex + 350);
+  const peClassMatch = html.match(
+    /P\/E\s*ratio[\s\S]*?<div[^>]*class="P6K39c"[^>]*>\s*([0-9]+(?:\.[0-9]+)?)\s*<\/div>/i
+  );
 
-    // Example structure in this window (simplified):
-    // "P/E ratio</div><div>...description...</div><div>19.17</div>"
-    const peMatch = peWindow.match(
-      /P\/E\s*ratio[\s\S]*?([0-9]+(?:\.[0-9]+)?)/i
-    );
-
-    if (peMatch && peMatch[1]) {
-      const parsed = Number(peMatch[1]);
-      if (!Number.isNaN(parsed)) {
-        peRatio = parsed;
-      }
+  if (peClassMatch && peClassMatch[1]) {
+    const parsed = Number(peClassMatch[1]);
+    if (!Number.isNaN(parsed)) {
+      peRatio = parsed;
     }
   }
 
