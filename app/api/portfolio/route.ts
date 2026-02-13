@@ -85,24 +85,31 @@ function sleep(ms: number) {
 async function fetchYahooCmp(symbol: string): Promise<{
   cmp: number;
 }> {
-  // yahoo-finance2 is an unofficial library that fetches Yahoo Finance data.
-  // It usually works without API keys, but still needs caching to avoid blocks.
-  const YahooFinance = (await import("yahoo-finance2")).default as any;
-  const yahooFinance = new YahooFinance();
+  try {
+    // yahoo-finance2 is an unofficial library that fetches Yahoo Finance data.
+    // It usually works without API keys, but still needs caching to avoid blocks.
+    const YahooFinance = (await import("yahoo-finance2")).default as any;
+    const yahooFinance = new YahooFinance();
 
-  const summary = await yahooFinance.quoteSummary(symbol, {
-    modules: ["price", "summaryDetail", "defaultKeyStatistics", "calendarEvents"],
-  });
+    const summary = await yahooFinance.quoteSummary(symbol, {
+      modules: ["price", "summaryDetail", "defaultKeyStatistics", "calendarEvents"],
+    });
 
-  const price =
-    summary?.price?.regularMarketPrice ??
-    summary?.price?.regularMarketPrice?.raw;
+    const price =
+      summary?.price?.regularMarketPrice ??
+      summary?.price?.regularMarketPrice?.raw;
 
-  if (typeof price !== "number") {
-    throw new Error(`No CMP available for ${symbol}`);
+    if (typeof price !== "number") {
+      console.error(`[Yahoo] No CMP available for ${symbol}. Summary:`, JSON.stringify(summary?.price || {}));
+      throw new Error(`No CMP available for ${symbol}`);
+    }
+
+    console.log(`[Yahoo] Successfully fetched CMP for ${symbol}: ${price}`);
+    return { cmp: price };
+  } catch (error: any) {
+    console.error(`[Yahoo] Error fetching CMP for ${symbol}:`, error?.message || error);
+    throw error;
   }
-
-  return { cmp: price };
 }
 
 // Google Finance: used for P/E Ratio and Latest Earnings
@@ -119,26 +126,48 @@ async function fetchGoogleFundamentals(
     symbol
   )}?hl=en`;
 
-  // console.log(`fetchGoogleFundamentals: ${url}`);
-  // console.log(`fetchGoogleFundamentals: ${symbol}`);
-  // console.log(`fetchGoogleFundamentals: ${url}`);
-  // console.log(`fetchGoogleFundamentals: ${symbol}`);  
   // Lazy‑load axios so that this route stays tree‑shake‑friendly.
   const axiosModule = await import("axios");
   const axios = axiosModule.default;
 
-  const response = await axios.get(url, {
-    headers: {
-      // Use a browser-like user agent to reduce the chance of being blocked.
-      "User-Agent":
-        "Mozilla/5.0 (compatible; PortfolioDashboard/1.0; +https://example.com)",
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    },
-    // We handle our own caching at the API level.
-    validateStatus: (status: number) => status >= 200 && status < 400,
-  });
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        // Use a more realistic browser user agent to reduce the chance of being blocked.
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Upgrade-Insecure-Requests": "1",
+      },
+      timeout: 10000, // 10 second timeout
+      maxRedirects: 5,
+      // We handle our own caching at the API level.
+      validateStatus: (status: number) => status >= 200 && status < 400,
+    });
 
-  const html = String(response.data);
+    // Check if we got blocked or got an error page
+    if (response.status !== 200) {
+      console.error(`[Google Finance] Returned status ${response.status} for ${symbol}`);
+      throw new Error(`Google Finance returned status ${response.status}`);
+    }
+
+    const html = String(response.data);
+
+    // Check if we got blocked (common indicators)
+    if (html.includes("Our systems have detected unusual traffic") || 
+        html.includes("Sorry, we can't verify that you're not a robot") ||
+        html.includes("unusual traffic from your computer network") ||
+        html.length < 1000) {
+      console.error(`[Google Finance] Appears to have blocked the request for ${symbol}. HTML length: ${html.length}`);
+      throw new Error("Google Finance blocked the request");
+    }
 
   // ---- P/E Ratio parsing ----
   // Runtime HTML (from your terminal) shows a structure like:
@@ -172,7 +201,17 @@ async function fetchGoogleFundamentals(
     latestEarnings = niMatch[1];
   }
 
-  return { peRatio, latestEarnings };
+    return { peRatio, latestEarnings };
+  } catch (error: any) {
+    console.error(`[Google Finance] Error fetching data for ${symbol}:`, {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      url: url,
+    });
+    throw error;
+  }
 }
 
 export async function GET() {
@@ -211,11 +250,26 @@ export async function GET() {
           peRatio: googleFundamentals.peRatio,
           latestEarnings: googleFundamentals.latestEarnings,
         });
-      } catch (err) {
-        console.error(err);
+      } catch (err: any) {
+        console.error(`Error processing holding ${holding.name} (${holding.id}):`, {
+          error: err.message,
+          stack: err.stack,
+          yahooSymbol: holding.yahooSymbol,
+          googleSymbol: holding.googleSymbol,
+        });
 
         // IMPORTANT: if we have a previous successful cached value, keep using it.
         const cached = cachedHoldings?.find((h) => h.id === holding.id);
+
+        if (cached) {
+          console.log(`Using cached values for ${holding.name}:`, {
+            cmp: cached.cmp,
+            peRatio: cached.peRatio,
+            latestEarnings: cached.latestEarnings,
+          });
+        } else {
+          console.warn(`No cached values available for ${holding.name}, using defaults`);
+        }
 
         results.push({
           id: holding.id,
@@ -244,10 +298,15 @@ export async function GET() {
       },
       { status: 200 }
     );
-  } catch (error) {
-    console.error("Portfolio API error:", error);
+  } catch (error: any) {
+    console.error("Portfolio API error:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
     // If the provider rate-limits or fails, return last good cached values if we have them.
     if (cachedHoldings) {
+      console.log("Returning cached holdings due to error");
       return NextResponse.json(
         {
           holdings: cachedHoldings,
@@ -259,8 +318,12 @@ export async function GET() {
       );
     }
 
+    console.error("No cached holdings available, returning error");
     return NextResponse.json(
-      { error: "Failed to load portfolio data" },
+      { 
+        error: "Failed to load portfolio data",
+        details: process.env.NODE_ENV === "development" ? error.message : undefined,
+      },
       { status: 500 }
     );
   }
