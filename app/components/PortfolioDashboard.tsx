@@ -94,31 +94,33 @@ function computePortfolio(
     })
   );
 
-  // #region agent log
-  fetch(
-    "http://127.0.0.1:7242/ingest/a77d4c33-76c4-4f9c-b3c6-2eb7a53e04ac",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        id: `log_${Date.now()}_computePortfolio`,
-        timestamp: Date.now(),
-        runId: "pre-fix",
-        hypothesisId: "H1",
-        location: "PortfolioDashboard.tsx:computePortfolio",
-        message: "computePortfolio summary",
-        data: {
-          holdingsCount: holdings.length,
-          totalInvestment,
-          totalPresentValue,
-          totalGainLoss,
-          sectorsCount: sectors.length,
+  // #region agent log (development only)
+  if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+    fetch(
+      "http://127.0.0.1:7242/ingest/a77d4c33-76c4-4f9c-b3c6-2eb7a53e04ac",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      }),
-    }
-  ).catch(() => {});
+        body: JSON.stringify({
+          id: `log_${Date.now()}_computePortfolio`,
+          timestamp: Date.now(),
+          runId: "pre-fix",
+          hypothesisId: "H1",
+          location: "PortfolioDashboard.tsx:computePortfolio",
+          message: "computePortfolio summary",
+          data: {
+            holdingsCount: holdings.length,
+            totalInvestment,
+            totalPresentValue,
+            totalGainLoss,
+            sectorsCount: sectors.length,
+          },
+        }),
+      }
+    ).catch(() => {});
+  }
   // #endregion agent log
 
   return {
@@ -154,25 +156,27 @@ export const PortfolioDashboard: React.FC = () => {
 
     // fetch the portfolio data from the API
     const fetchPortfolio = async () => {
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7242/ingest/a77d4c33-76c4-4f9c-b3c6-2eb7a53e04ac",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id: `log_${Date.now()}_fetchPortfolio_start`,
-            timestamp: Date.now(),
-            runId: "pre-fix",
-            hypothesisId: "H2",
-            location: "PortfolioDashboard.tsx:fetchPortfolio",
-            message: "fetchPortfolio start",
-            data: {},
-          }),
-        }
-      ).catch(() => {});
+      // #region agent log (development only)
+      if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+        fetch(
+          "http://127.0.0.1:7242/ingest/a77d4c33-76c4-4f9c-b3c6-2eb7a53e04ac",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: `log_${Date.now()}_fetchPortfolio_start`,
+              timestamp: Date.now(),
+              runId: "pre-fix",
+              hypothesisId: "H2",
+              location: "PortfolioDashboard.tsx:fetchPortfolio",
+              message: "fetchPortfolio start",
+              data: {},
+            }),
+          }
+        ).catch(() => {});
+      }
       // #endregion agent log
       try {
         setError(null);
@@ -187,28 +191,30 @@ export const PortfolioDashboard: React.FC = () => {
           source?: string;
         } = await res.json();
 
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7242/ingest/a77d4c33-76c4-4f9c-b3c6-2eb7a53e04ac",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              id: `log_${Date.now()}_fetchPortfolio_success`,
-              timestamp: Date.now(),
-              runId: "pre-fix",
-              hypothesisId: "H2",
-              location: "PortfolioDashboard.tsx:fetchPortfolio",
-              message: "fetchPortfolio success",
-              data: {
-                holdingsCount: data.holdings?.length ?? 0,
-                source: data.source ?? null,
+        // #region agent log (development only)
+        if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+          fetch(
+            "http://127.0.0.1:7242/ingest/a77d4c33-76c4-4f9c-b3c6-2eb7a53e04ac",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
               },
-            }),
-          }
-        ).catch(() => {});
+              body: JSON.stringify({
+                id: `log_${Date.now()}_fetchPortfolio_success`,
+                timestamp: Date.now(),
+                runId: "pre-fix",
+                hypothesisId: "H2",
+                location: "PortfolioDashboard.tsx:fetchPortfolio",
+                message: "fetchPortfolio success",
+                data: {
+                  holdingsCount: data.holdings?.length ?? 0,
+                  source: data.source ?? null,
+                },
+              }),
+            }
+          ).catch(() => {});
+        }
         // #endregion agent log
 
         if (!isCancelled) {
@@ -220,28 +226,30 @@ export const PortfolioDashboard: React.FC = () => {
           console.error("Failed to load portfolio:", err);
           setError("Failed to load portfolio data. Please try again.");
           setIsLoading(false);
-          // #region agent log
-          fetch(
-            "http://127.0.0.1:7242/ingest/a77d4c33-76c4-4f9c-b3c6-2eb7a53e04ac",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                id: `log_${Date.now()}_fetchPortfolio_error`,
-                timestamp: Date.now(),
-                runId: "pre-fix",
-                hypothesisId: "H3",
-                location: "PortfolioDashboard.tsx:fetchPortfolio",
-                message: "fetchPortfolio error",
-                data: {
-                  // Intentionally not logging error details to avoid sensitive info
-                  hasError: true,
+          // #region agent log (development only)
+          if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+            fetch(
+              "http://127.0.0.1:7242/ingest/a77d4c33-76c4-4f9c-b3c6-2eb7a53e04ac",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
                 },
-              }),
-            }
-          ).catch(() => {});
+                body: JSON.stringify({
+                  id: `log_${Date.now()}_fetchPortfolio_error`,
+                  timestamp: Date.now(),
+                  runId: "pre-fix",
+                  hypothesisId: "H3",
+                  location: "PortfolioDashboard.tsx:fetchPortfolio",
+                  message: "fetchPortfolio error",
+                  data: {
+                    // Intentionally not logging error details to avoid sensitive info
+                    hasError: true,
+                  },
+                }),
+              }
+            ).catch(() => {});
+          }
           // #endregion agent log
         }
       }
