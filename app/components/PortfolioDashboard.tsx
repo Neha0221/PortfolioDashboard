@@ -187,9 +187,15 @@ export const PortfolioDashboard: React.FC = () => {
         }
 
         const data: {
-          holdings: Holding[];
+          holdings?: Holding[];
           source?: string;
+          error?: string;
         } = await res.json();
+
+        // Validate response data
+        if (!data || !data.holdings || !Array.isArray(data.holdings)) {
+          throw new Error("Invalid response format: holdings array is missing or invalid");
+        }
 
         // #region agent log (development only)
         if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
